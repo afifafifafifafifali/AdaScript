@@ -1,0 +1,45 @@
+// AdaScript sample program demonstrating features
+
+// variables and math
+
+let a = 10.5;
+let b = 3;
+print("a+b=", a + b);
+print("a*b=", a * b);
+print("a/b=", a / b);
+print("a%b=", a % b);
+
+// functions
+func add(x, y) { return x + y; }
+print("add:", add(2,3));
+
+// lists and map
+let xs = [1, 2, 3, 4];
+func sq(n) { return n * n; }
+let ys = map(sq, xs);
+print("ys:", ys);
+
+// dicts
+let d = {"name": "Ada", "age": 1815};
+print(d.name, d["age"]);
+
+d.age = d.age + 1;
+print("age+1:", d.age);
+
+// class and methods
+class Point {
+  func init(x, y) { this.x = x; this.y = y; }
+  func sum() { return this.x + this.y; }
+}
+let p = Point(7, 5);
+print("p.sum:", p.sum());
+
+// control flow
+let i = 0;
+while (i < 3) { print("i=", i); i = i + 1; }
+
+// input and sqrt
+//let name = input("Your name: ");
+//print("Hello,", name);
+print("sqrt_bs(2)=", sqrt_bs(2));
+

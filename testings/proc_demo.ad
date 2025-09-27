@@ -1,0 +1,4 @@
+// Simple demo that runs a shell command and prints its output/status
+let r = proc.exec("echo hello from proc");
+print("status:", r.status);
+print("out:\n" + r.out);

@@ -1,0 +1,11 @@
+import "../builtins/libs";
+
+// Queue test
+let q = Queue();
+q.push(1); q.push(2); print("q.pop:", q.pop()); print("q.peek:", q.peek());
+
+// Deque test
+let d = Deque();
+d.push_front(1); d.push_back(2); d.push_back(3);
+print("d pops:", d.pop_front(), d.pop_back());
+

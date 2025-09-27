@@ -1,0 +1,13 @@
+// Filesystem and content smoke test
+print("fs smoke start");
+let tmpdir = "C:/Users/AFIF/Desktop/AdaScript/build/tmp_as";
+if (!fs.exists(tmpdir)) { fs.mkdirs(tmpdir); }
+let p = tmpdir + "/file.txt";
+fs.write_text(p, "hello world");
+print("exists(file):", fs.exists(p));
+print("listdir(tmp):", fs.listdir(tmpdir));
+print("read_text:", fs.read_text(p));
+print("content.get local path ok:", content.get(p).ok);
+print("content.get https len:", len(content.get("https://example.org/").text));
+print("fs.remove count:", fs.remove(tmpdir));
+print("fs smoke end");

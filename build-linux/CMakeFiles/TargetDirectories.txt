@@ -1,0 +1,4 @@
+/mnt/c/Users/AFIF/Desktop/AdaScript/build-linux/CMakeFiles/adascript_core.dir
+/mnt/c/Users/AFIF/Desktop/AdaScript/build-linux/CMakeFiles/adascript.dir
+/mnt/c/Users/AFIF/Desktop/AdaScript/build-linux/CMakeFiles/edit_cache.dir
+/mnt/c/Users/AFIF/Desktop/AdaScript/build-linux/CMakeFiles/rebuild_cache.dir

@@ -1,0 +1,82 @@
+// AdaScript builtins: algorithms library
+import "datastructures";
+// Provides: gcd, lcm, binary_search (on sorted list), quicksort, bfs, dfs
+
+func gcd(a, b) {
+    a = int(a); b = int(b);
+    while (b != 0) { let t = a % b; a = b; b = t; }
+    return abs(a);
+}
+
+func lcm(a, b) {
+    a = int(a); b = int(b);
+    if (a == 0 or b == 0) { return 0; }
+    return (abs(a) / gcd(a,b)) * abs(b);
+}
+
+func binary_search(xs, target) {
+    let lo = 0; let hi = len(xs) - 1;
+    while (lo <= hi) {
+        let mid = int((lo + hi) / 2);
+        if (xs[mid] == target) { return mid; }
+        if (xs[mid] < target) { lo = mid + 1; } else { hi = mid - 1; }
+    }
+    return -1;
+}
+
+func _qs(xs, lo, hi) {
+    if (lo >= hi) { return null; }
+    let i = lo; let j = hi;
+    let pivot = xs[int((lo+hi)/2)];
+    while (i <= j) {
+        while (xs[i] < pivot) { i = i + 1; }
+        while (xs[j] > pivot) { j = j - 1; }
+        if (i <= j) {
+            let tmp = xs[i]; xs[i] = xs[j]; xs[j] = tmp; i = i + 1; j = j - 1;
+        }
+    }
+    if (lo < j) { _qs(xs, lo, j); }
+    if (i < hi) { _qs(xs, i, hi); }
+    return null;
+}
+
+func quicksort(xs) {
+    if (len(xs) <= 1) { return xs; }
+    _qs(xs, 0, len(xs)-1);
+    return xs;
+}
+
+// Graph represented as dict: { node: [neighbors...] }
+func bfs(graph, start) {
+    let q = Queue();
+    let visited = {}; let order = [];
+    q.push(start); visited[str(start)] = true;
+    while (!q.is_empty()) {
+        let v = q.pop();
+        order[len(order)] = v;
+        for (n in graph[str(v)]) {
+            if (!(has(visited, str(n)) and visited[str(n)] == true)) { visited[str(n)] = true; q.push(n); }
+        }
+    }
+    return order;
+}
+
+func dfs(graph, start) {
+    let st = Stack();
+    let visited = {}; let order = [];
+    st.push(start);
+    while (!st.is_empty()) {
+        let v = st.pop();
+        if (has(visited, str(v)) and visited[str(v)] == true) {
+            // skip already visited
+        } else {
+            visited[str(v)] = true; order[len(order)] = v;
+            // push neighbors in reverse to mimic typical DFS
+            let ns = graph[str(v)];
+            let i = len(ns) - 1;
+            while (i >= 0) { st.push(ns[i]); i = i - 1; }
+        }
+    }
+    return order;
+}
+

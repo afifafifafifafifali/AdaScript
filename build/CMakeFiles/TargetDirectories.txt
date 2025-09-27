@@ -1,0 +1,4 @@
+C:/Users/AFIF/Desktop/AdaScript/build/CMakeFiles/adascript_core.dir
+C:/Users/AFIF/Desktop/AdaScript/build/CMakeFiles/adascript.dir
+C:/Users/AFIF/Desktop/AdaScript/build/CMakeFiles/edit_cache.dir
+C:/Users/AFIF/Desktop/AdaScript/build/CMakeFiles/rebuild_cache.dir

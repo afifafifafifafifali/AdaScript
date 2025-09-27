@@ -1,0 +1,4 @@
+// Requires c_concat to be registered by the C host before running this file.
+// Run via: .\build\host.exe (from repo root)
+
+print(c_concat("Hello, ", "from C host!"));
