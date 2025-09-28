@@ -1,0 +1,5 @@
+// Loads the native_concat_plugin and uses its symbol
+print("loading native plugin...");
+let ok = native.load("./build/native_concat_plugin.dll");
+print("loaded:", ok);
+print(plugin_concat("Hello, ", "from plugin!"));

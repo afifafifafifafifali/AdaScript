@@ -1,0 +1,7 @@
+// Test POST and request
+print("POSTing...");
+let r1 = requests.post("https://httpbin.org/post", "hello=world", {"Content-Type":"application/x-www-form-urlencoded"});
+print("post status:", r1.status, ", len:", len(r1.text));
+
+let r2 = requests.request("GET", "https://example.org/");
+print("request get status:", r2.status, ", len:", len(r2.text));

@@ -2,6 +2,8 @@
 
 AdaScript is a small interpreted language with built‑in data structures, algorithms, HTTP client utilities, filesystem helpers, and simple module importing. This document covers installation, usage, language basics, and the standard library currently provided.
 
+#### Note : We have a STL(Standard Template Library) inside the builtins directory, you need to make the builtins directory whenever you run code in AdaScript.(If you need it). And, for high-level development support, please refer to the ``docs`` directory. Thank you for your co-operation 😁
+
 ## Build and Run
 
 - Prereqs: CMake (>=3.15), Ninja, C++13 compiler (Windows supported), WinHTTP available on Windows (linked automatically).
@@ -213,7 +215,6 @@ Run one:
 
 ## A Sample code for a fun problem
 
-
 ```ada
 // Codeforces: Greedy Grid (2122A)
 
@@ -228,7 +229,6 @@ for (_ in range(t)) {
 }
 
 ```
-
 
 ## License
 

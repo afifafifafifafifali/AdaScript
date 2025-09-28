@@ -1,0 +1,3 @@
+import "../builtins/libs";
+let s = Stack(); s.push(1); s.push(2); print("pop1:", s.pop()); print("pop2:", s.pop()); print("pop3:", s.pop());
+

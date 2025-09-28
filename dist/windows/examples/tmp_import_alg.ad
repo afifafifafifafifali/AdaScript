@@ -1,0 +1,2 @@
+import "../builtins/algorithms";
+print("ok");

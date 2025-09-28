@@ -1,0 +1,21 @@
+// Smoke test: builtins/libs (Stack, Queue, Deque, LRUCache, algorithms)
+
+import "../builtins/libs";
+
+// Data structures
+let st = Stack(); st.push(1); st.push(2); print("stack pop:", st.pop(), st.pop());
+let q = Queue(); q.push(10); q.push(20); print("queue pop/peek:", q.pop(), q.peek());
+let dq = Deque(); dq.push_front(1); dq.push_back(2); print("deque pop:", dq.pop_front(), dq.pop_back());
+
+// LRU Cache
+
+// Algorithms
+print("gcd/lcm:", gcd(48, 18), lcm(4, 6));
+print("binary_search:", binary_search([1,3,5,7], 5));
+print("quicksort:", quicksort([3,1,4,1,5]));
+
+// simple graph for bfs/dfs
+let g = {"1": ["2","3"], "2": ["4"], "3": ["4"], "4": []};
+print("bfs:", bfs(g, "1"));
+print("dfs:", dfs(g, "1"));
+

@@ -52,6 +52,15 @@ ADASCRIPT_API char* AdaScript_Call(AdaScriptVM* vm, const char* func_name, const
 typedef char* (*AdaScript_NativeStringFn)(void* user_data, const char* const* args, int argc);
 ADASCRIPT_API int AdaScript_RegisterNativeStringFn(AdaScriptVM* vm, const char* name, int arity, AdaScript_NativeStringFn fn, void* user_data);
 
+// Plugin API (for DLLs/SOs loaded by the AdaScript interpreter)
+// A plugin must export AdaScript_ModuleInit symbol with this signature.
+// The interpreter will call it with a registration function you can use to register
+// native string functions into the global scope.
+typedef void (*AdaScript_RegisterFn)(const char* name, int arity, AdaScript_NativeStringFn fn, void* user_data);
+typedef int (*AdaScript_ModuleInitFn)(AdaScript_RegisterFn reg, void* host_ctx);
+// Plugins should implement:
+//   ADASCRIPT_API int AdaScript_ModuleInit(AdaScript_RegisterFn reg, void* host_ctx);
+
 // Free strings returned by AdaScript_Call or provided in *error_message.
 ADASCRIPT_API void AdaScript_FreeString(char* s);
 

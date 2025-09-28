@@ -1,0 +1,22 @@
+// loops and import demo
+
+// for-in over range
+for (i in range(0, 5)) { print("i:", i); }
+
+// nested loops over lists
+let xs = ["a", "b"];
+let ys = [1, 2, 3];
+for (x in xs) {
+  for (y in ys) {
+    print("pair:", x, y);
+  }
+}
+
+// iterate dict (keys)
+let d = {"k1": 10, "k2": 20};
+for (k in d) { print("key:", k, "val:", d[k]); }
+
+// use function from imported file
+func run() { greet("Ada"); }
+run();
+

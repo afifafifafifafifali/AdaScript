@@ -1,0 +1,7 @@
+// Smoke test for HTTP/HTTPS GET
+// Note: requires network access. If behind a proxy, WinHTTP default proxy will be used.
+print("Fetching example.org ...");
+let r = requests.get("https://example.org/");
+print("status:", r.status);
+print("body length:", len(r.text));
+

@@ -1,6 +1,6 @@
 // AdaScript builtins: LRU Cache (simple)
 // Usage: let cache = LRUCache(3); cache.put("a", 1); cache.get("a");
-
+// @message level:authorized::builtins :- WARNING: LRUCache is not currently functional.
 class LRUCache {
     func init(cap) { this._cap = cap; this._map = {}; this._order = []; }
     func _touch(key) {

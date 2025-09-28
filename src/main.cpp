@@ -418,6 +418,7 @@ public:
     std::shared_ptr<Environment> globals = std::make_shared<Environment>();
     std::shared_ptr<Environment> env = globals;
     std::filesystem::path current_dir;
+    std::filesystem::path builtins_dir; // optional root for builtins
     std::unordered_set<std::string> loaded_files;
 
     explicit Interpreter(const std::filesystem::path& entry_dir);
@@ -460,7 +461,18 @@ void execute(const StmtPtr& stmt){ if(auto p=std::dynamic_pointer_cast<BlockStmt
         if(auto s = std::get_if<std::string>(&it.data)){ for(char ch: *s){ std::string one(1, ch); setVar(Value(one)); execute(fs->body);} return; }
         throw RuntimeError("for 'in' expects list, dict, or string"); }
 
-    void execImport(const std::string& rawPath){ using namespace std::filesystem; path p(rawPath); if(p.extension().empty()) p.replace_extension(".ad"); path full = (current_dir / p).lexically_normal(); std::string key = full.string(); if(loaded_files.count(key)) return; loaded_files.insert(key);
+void execImport(const std::string& rawPath){ using namespace std::filesystem; path p(rawPath);
+        if(p.extension().empty()) p.replace_extension(".ad");
+        path full;
+        // Special handling for builtins location, e.g. import "builtins/..."
+        std::string raw = rawPath;
+        if(!builtins_dir.empty() && (raw.rfind("builtins/", 0)==0 || raw.rfind("builtins\\", 0)==0)){
+            path sub = raw.substr(raw.find('/')!=std::string::npos? raw.find('/')+1 : raw.find('\\')+1);
+            full = (builtins_dir / sub).lexically_normal();
+        } else {
+            full = (current_dir / p).lexically_normal();
+        }
+        std::string key = full.string(); if(loaded_files.count(key)) return; loaded_files.insert(key);
         std::ifstream in(full, std::ios::binary); if(!in) throw RuntimeError(std::string("import: cannot open ")+ key);
         std::ostringstream ss; ss<<in.rdbuf(); std::string src = ss.str(); Lexer lx(src); auto toks = lx.scan(); Parser ps(toks); auto stmts = ps.parse(); auto prevDir = current_dir; current_dir = full.parent_path(); try{ for(auto& s: stmts) execute(s); } catch(...) { current_dir = prevDir; throw; } current_dir = prevDir; }
 
@@ -903,6 +915,42 @@ static Value builtin_c_run(Interpreter&, const std::vector<Value>& args){
 // Server stub
 static Value builtin_server_serve(Interpreter&, const std::vector<Value>& args){ throw RuntimeError("server.serve: not implemented in this build"); }
 
+// Native module loader: native.load(path_to_dll_or_so) -> true
+#ifdef _WIN32
+  #include <windows.h>
+#else
+  #include <dlfcn.h>
+#endif
+static Value builtin_native_load(Interpreter& ip, const std::vector<Value>& args){ if(args.size()!=1) throw RuntimeError("native.load expects (path)"); if(!std::holds_alternative<std::string>(args[0].data)) throw RuntimeError("native.load path must be string"); std::string path = std::get<std::string>(args[0].data);
+    // Bridge: registration function that registers native string fns into ip.globals
+    struct Thunk { static Value wrap(AdaScript_NativeStringFn f, void* u, Interpreter& ip, const std::vector<Value>& a){ std::vector<std::string> ss; ss.reserve(a.size()); for(auto& v: a){ std::ostringstream oss; if(auto s=std::get_if<std::string>(&v.data)) oss<<*s; else if(auto n=std::get_if<double>(&v.data)) oss<<*n; else if(auto b=std::get_if<bool>(&v.data)) oss<<(*b?"true":"false"); else if(std::holds_alternative<std::monostate>(v.data)) oss<<"null"; else oss<<"<"<<v.typeName()<<">"; ss.push_back(oss.str()); }
+            std::vector<const char*> cargs; cargs.reserve(ss.size()); for(auto& s: ss) cargs.push_back(s.c_str()); char* out = f(u, cargs.data(), (int)cargs.size()); std::string res = out? std::string(out) : std::string(""); if(out) std::free(out); return Value(res); } };
+    // Provide a C function pointer that forwards to the lambda above
+    struct RegCtx { Interpreter* ip; } ctx{ &ip };
+    auto reg_lambda = [&](const char* name, int arity, AdaScript_NativeStringFn fn, void* user){ auto nf = std::make_shared<NativeFunction>(std::string(name), arity, [fn,user](Interpreter& ip2, const std::vector<Value>& a)->Value{ return Thunk::wrap(fn, user, ip2, a); }); ip.globals->define(name, Value(nf)); };
+    // Static trampoline to match AdaScript_RegisterFn
+    struct RegBridge { static void call(void* vctx, const char* name, int arity, AdaScript_NativeStringFn fn, void* user){ RegCtx* c = (RegCtx*)vctx; Interpreter& ip3 = *c->ip; auto nf = std::make_shared<NativeFunction>(std::string(name), arity, [fn,user](Interpreter& ip2, const std::vector<Value>& a)->Value{ return Thunk::wrap(fn, user, ip2, a); }); ip3.globals->define(name, Value(nf)); } };
+#ifdef _WIN32
+    HMODULE h = LoadLibraryA(path.c_str()); if(!h) throw RuntimeError("native.load: failed to load library");
+    auto init = (AdaScript_ModuleInitFn)GetProcAddress(h, "AdaScript_ModuleInit"); if(!init){ FreeLibrary(h); throw RuntimeError("native.load: AdaScript_ModuleInit not found"); }
+#else
+    void* h = dlopen(path.c_str(), RTLD_NOW); if(!h) throw RuntimeError(std::string("native.load: ")+ dlerror());
+    auto init = (AdaScript_ModuleInitFn)dlsym(h, "AdaScript_ModuleInit"); if(!init){ dlclose(h); throw RuntimeError("native.load: AdaScript_ModuleInit not found"); }
+#endif
+    // Build a function pointer for registration
+    auto c_reg = +[](const char* name, int arity, AdaScript_NativeStringFn fn, void* user){ /* placeholder, replaced by bound with context */ };
+    // Instead, we pass a context via host_ctx and use a bridge that captures ctx
+    // But since AdaScript_RegisterFn doesn't accept context, we provide a thunk via function-static storage
+    // Simpler: provide a small global that stores the active context only during init
+    // Use function-static pointer instead of nested static class for portability
+    static RegCtx* g_active_regctx = nullptr;
+    g_active_regctx = &ctx;
+    auto reg_fn = +[](const char* name, int arity, AdaScript_NativeStringFn fn, void* user){ RegCtx* c = g_active_regctx; RegBridge::call(c, name, arity, fn, user); };
+    int rc = init((AdaScript_RegisterFn)reg_fn, (void*)&ip); if(rc!=0) throw RuntimeError("native.load: init returned error");
+    g_active_regctx = nullptr;
+    return Value(true);
+}
+
 // Process execution: proc.exec(cmd) -> {status, out}
 static Value builtin_proc_exec(Interpreter&, const std::vector<Value>& args){ if(args.size()!=1) throw RuntimeError("proc.exec expects (cmd)"); if(!std::holds_alternative<std::string>(args[0].data)) throw RuntimeError("proc.exec cmd must be string"); std::string cmd = std::get<std::string>(args[0].data);
 #ifdef _WIN32
@@ -941,7 +989,9 @@ Interpreter::Interpreter(const std::filesystem::path& entry_dir){ current_dir = 
     Dict cns; cns["run"] = Value(std::make_shared<NativeFunction>("c.run", -1, builtin_c_run)); globals->define("c", Value(cns));
 Dict server; server["serve"] = Value(std::make_shared<NativeFunction>("server.serve", -1, builtin_server_serve)); globals->define("server", Value(server));
     // proc namespace (command execution)
-    Dict proc; proc["exec"] = Value(std::make_shared<NativeFunction>("proc.exec", 1, builtin_proc_exec)); globals->define("proc", Value(proc)); }
+    Dict proc; proc["exec"] = Value(std::make_shared<NativeFunction>("proc.exec", 1, builtin_proc_exec)); globals->define("proc", Value(proc));
+    // native namespace (dynamic plugin loader)
+    Dict native; native["load"] = Value(std::make_shared<NativeFunction>("native.load", 1, [](Interpreter& ip, const std::vector<Value>& a){ return builtin_native_load(ip,a);})); globals->define("native", Value(native)); }
 
 // C API for embedding
 extern "C" {
@@ -993,11 +1043,17 @@ ADASCRIPT_API void AdaScript_FreeString(char* s){ if(s) std::free(s); }
 // Main
 #ifndef ADASCRIPT_NO_MAIN
 int main(int argc, char** argv){ std::ios::sync_with_stdio(false); std::cin.tie(nullptr);
-    if(argc<2){ std::cerr<<"Usage: adascript <file.ad>\n"; return 1; }
-    std::ifstream in(argv[1], std::ios::binary); if(!in){ std::cerr<<"Failed to open: "<<argv[1]<<"\n"; return 1; }
+    if(argc<2){ std::cerr<<"Usage: adascript [--built-ins-location <dir>] <file.ad>\n"; return 1; }
+    // Parse options
+    int argi = 1; std::string script;
+    std::string builtinsLoc;
+    while(argi < argc){ std::string a = argv[argi]; if(a == "--built-ins-location"){ if(argi+1>=argc){ std::cerr<<"Missing value for --built-ins-location\n"; return 1; } builtinsLoc = argv[++argi]; argi++; continue; } else { script = a; argi++; break; } }
+    if(script.empty()){ std::cerr<<"Missing script file\n"; return 1; }
+    std::ifstream in(script, std::ios::binary); if(!in){ std::cerr<<"Failed to open: "<<script<<"\n"; return 1; }
     std::ostringstream ss; ss<<in.rdbuf(); std::string src = ss.str();
     try{
-        Lexer lx(src); auto tokens = lx.scan(); Parser ps(tokens); auto stmts = ps.parse(); std::filesystem::path entry = std::filesystem::path(argv[1]).parent_path(); Interpreter ip(entry);
+        Lexer lx(src); auto tokens = lx.scan(); Parser ps(tokens); auto stmts = ps.parse(); std::filesystem::path entry = std::filesystem::path(script).parent_path(); Interpreter ip(entry);
+        if(!builtinsLoc.empty()) ip.builtins_dir = builtinsLoc;
         ip.interpret(stmts);
     } catch(const RuntimeError& e){ std::cerr<<"Error: "<<e.what()<<"\n"; return 1; }
     return 0; }

@@ -1,0 +1,20 @@
+// Smoke test: textual operators and multiple assignment
+
+// textual logical operators
+let a = true; let b = false;
+print("not a:", not a);
+print("a and b:", a and b);
+print("a or b:", a or b);
+print("1 equals 1:", 1 equals 1);
+
+// multiple assignment from a literal list
+let x = 0; let y = 0; let z = 0;
+x, y, z = [10, 20, 30];
+print("multi:", x, y, z);
+
+// multiple assignment from map(int, split(...))
+let s = "1 2 3";
+let p = 0; let q = 0; let r = 0;
+p, q, r = map(int, split(s));
+print("split+map multi:", p, q, r);
+

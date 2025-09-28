@@ -1,0 +1,5 @@
+import "../builtins/algorithms";
+let g = {"1": ["2","3"], "2": ["4"], "3": ["4"], "4": []};
+print("has 1:", has(g, "1"));
+print("neighbors 1 len:", len(g["1"]));
+print("first neighbor:", g["1"][0]);

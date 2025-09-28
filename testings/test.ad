@@ -1,0 +1,3 @@
+// This is a comment
+
+print("Hello in AdaScript");let a = int(input("Gimme a number to crunch: "));print("Crunched number is: ",sqrt_bs(a));

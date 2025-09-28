@@ -1,4 +1,0 @@
-// Bindings provided by host: native_concat, native_sha256, etc.
-// This requires your host to have registered c_concat
-let native = { concat: native_concat };
-print(c_concat("Hello, ", "from C!"));

@@ -1,0 +1,13 @@
+// Smoke test: builtins (int, float, str, split, join), requests.get(file://)
+
+print("int/float/str:", int(3.9), float("2.5"), str(true));
+
+let parts = split("a,b,c", ",");
+print("split:", parts);
+print("join:", join(parts, "-"));
+
+// requests.get on a local file (point to README.md)
+let resp = requests.get("file://C:/Users/AFIF/Desktop/AdaScript/README.md");
+print("requests status:", resp.status);
+print("requests text length:", len(resp.text));
+
