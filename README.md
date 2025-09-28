@@ -32,23 +32,28 @@ AdaScript is a small, C-style interpreted language with Python-like ergonomics, 
 ## Quick start
 
 Build (Windows, Ninja):
+
 - cmake -S . -B build -G Ninja
 - cmake --build build --config Release
 
 Build (Linux/WSL, Ninja):
+
 - Prereqs: libcurl dev (e.g., Ubuntu: `sudo apt-get install libcurl4-openssl-dev`)
 - cmake -S . -B build -G Ninja
 - cmake --build build --config Release
 
 Artifacts:
+
 - Shared library: build/ (adascript_core.dll on Windows; libadascript_core.so on Linux)
 - CLI executable: build/adascript(.exe)
 
 Run:
+
 - Windows: .\\build\\adascript.exe path\\to\\script.ad
 - Linux/WSL: ./build/adascript path/to/script.ad
 
 Embed from C:
+
 - Include header: include/AdaScript.h
 - Link: adascript_core (import library on Windows, .so on Linux)
 - Example: see docs/C_API.md
@@ -58,43 +63,52 @@ See full docs in documentation.md.
 ## Language overview
 
 Variables
+
 - let x = 10; x = x + 1;
 
 Functions
+
 - func add(a, b) { return a + b; }
 
 Lists and dicts
+
 - let xs = [1, 2, 3];
 - let d = {"a": 1, "b": 2}; d.a = d.a + 1;
 
 Classes
+
 - class Point { func init(x, y) { this.x = x; this.y = y; } func sum() { return this.x + this.y; } }
 - let p = Point(1, 2); print(p.sum());
 
 Control flow
+
 - if (cond) { ... } else { ... }
 - while (cond) { ... }
 - for (i in [1,2,3]) { ... }
 - for (k in {"a":1, "b":2}) { print(k); }
 
 Imports
-- import "builtins/libs"; // Stack, Queue, Deque, LRUCache, algorithms
+
+- ``import "builtins/libs"; // Stack, Queue, Deque, LRUCache, algorithms``
 
 I/O and utilities
-- let name = input("Your name: ");
+
+- ``let name = input("Your name: ");``
 - // Python-like: multi-assign + split + map
 - let a, b, c = map(int, input("Enter three ints ").split());
 - // Or use list_input (auto sep and typing)
 - let xs = list_input("Enter numbers: ");
 
-## HTTP, FS, and content
+## HTTP, FS, and content(Ya'll linux programmers like me who are not lazy,can imporve requests for linux systems)
 
 HTTP (requests)
+
 - let r = requests.get("https://example.org/");
 - let p = requests.post("https://httpbin.org/post", "x=1", {"Content-Type":"application/x-www-form-urlencoded"});
 - let any = requests.request("GET", "https://example.org/");
 
 Filesystem (fs)
+
 - fs.mkdirs("C:/tmp/as");
 - fs.write_text("C:/tmp/as/note.txt", "hello");
 - print(fs.read_text("C:/tmp/as/note.txt"));
@@ -102,6 +116,7 @@ Filesystem (fs)
 - fs.remove("C:/tmp/as");
 
 Content retrieval (content)
+
 - let c1 = content.get("https://example.org/");
 - let c2 = content.get("file://C:/Windows/win.ini");
 - let c3 = content.get("C:/Windows/win.ini");

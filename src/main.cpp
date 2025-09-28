@@ -24,6 +24,11 @@ License: LGPL
 #ifndef _WIN32
 #include <unistd.h>
 #endif
+#ifndef _WIN32
+  #ifndef ADASCRIPT_NO_CURL
+    #include <curl/curl.h>
+  #endif
+#endif
 #include "AdaScript.h"
 
 // Forward declarations
@@ -781,7 +786,6 @@ static Dict http_request(const std::string& method, const std::string& url, cons
 #else
     // Non-Windows: libcurl (optional)
     #ifndef ADASCRIPT_NO_CURL
-      #include <curl/curl.h>
       struct Buf { std::string s; };
       auto write_cb = [](char* ptr, size_t size, size_t nmemb, void* userdata)->size_t{
           Buf* b = (Buf*)userdata; b->s.append(ptr, size*nmemb); return size*nmemb;

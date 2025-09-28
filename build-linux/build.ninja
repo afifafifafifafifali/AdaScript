@@ -45,7 +45,7 @@ cmake_ninja_workdir = /mnt/c/Users/AFIF/Desktop/AdaScript/build-linux/
 build cmake_object_order_depends_target_adascript_core: phony || CMakeFiles/adascript_core.dir
 
 build CMakeFiles/adascript_core.dir/src/main.cpp.o: CXX_COMPILER__adascript_core_unscanned_ /mnt/c/Users/AFIF/Desktop/AdaScript/src/main.cpp || cmake_object_order_depends_target_adascript_core
-  DEFINES = -DADASCRIPT_BUILD_DLL -DADASCRIPT_NO_CURL -DADASCRIPT_NO_MAIN -Dadascript_core_EXPORTS
+  DEFINES = -DADASCRIPT_BUILD_DLL -DADASCRIPT_NO_MAIN -Dadascript_core_EXPORTS
   DEP_FILE = CMakeFiles/adascript_core.dir/src/main.cpp.o.d
   FLAGS = -std=c++17 -fPIC
   INCLUDES = -I/mnt/c/Users/AFIF/Desktop/AdaScript/include -I/mnt/c/Users/AFIF/Desktop/AdaScript/src
@@ -60,7 +60,8 @@ build CMakeFiles/adascript_core.dir/src/main.cpp.o: CXX_COMPILER__adascript_core
 #############################################
 # Link the shared library libadascript_core.so
 
-build libadascript_core.so: CXX_SHARED_LIBRARY_LINKER__adascript_core_ CMakeFiles/adascript_core.dir/src/main.cpp.o
+build libadascript_core.so: CXX_SHARED_LIBRARY_LINKER__adascript_core_ CMakeFiles/adascript_core.dir/src/main.cpp.o | /usr/lib/x86_64-linux-gnu/libcurl.so
+  LINK_LIBRARIES = /usr/lib/x86_64-linux-gnu/libcurl.so
   OBJECT_DIR = CMakeFiles/adascript_core.dir
   POST_BUILD = :
   PRE_LINK = :
@@ -79,7 +80,6 @@ build libadascript_core.so: CXX_SHARED_LIBRARY_LINKER__adascript_core_ CMakeFile
 build cmake_object_order_depends_target_adascript: phony || CMakeFiles/adascript.dir
 
 build CMakeFiles/adascript.dir/src/main.cpp.o: CXX_COMPILER__adascript_unscanned_ /mnt/c/Users/AFIF/Desktop/AdaScript/src/main.cpp || cmake_object_order_depends_target_adascript
-  DEFINES = -DADASCRIPT_NO_CURL
   DEP_FILE = CMakeFiles/adascript.dir/src/main.cpp.o.d
   FLAGS = -std=c++17
   INCLUDES = -I/mnt/c/Users/AFIF/Desktop/AdaScript/src -I/mnt/c/Users/AFIF/Desktop/AdaScript/include
@@ -94,7 +94,8 @@ build CMakeFiles/adascript.dir/src/main.cpp.o: CXX_COMPILER__adascript_unscanned
 #############################################
 # Link the executable adascript
 
-build adascript: CXX_EXECUTABLE_LINKER__adascript_ CMakeFiles/adascript.dir/src/main.cpp.o
+build adascript: CXX_EXECUTABLE_LINKER__adascript_ CMakeFiles/adascript.dir/src/main.cpp.o | /usr/lib/x86_64-linux-gnu/libcurl.so
+  LINK_LIBRARIES = /usr/lib/x86_64-linux-gnu/libcurl.so
   OBJECT_DIR = CMakeFiles/adascript.dir
   POST_BUILD = :
   PRE_LINK = :
