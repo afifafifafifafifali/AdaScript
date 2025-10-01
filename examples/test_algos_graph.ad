@@ -1,4 +1,4 @@
-import "../builtins/libs";
+import "builtins/libs.ad";
 let g = {"1": ["2","3"], "2": ["4"], "3": ["4"], "4": []};
 print("bfs:", bfs(g, "1"));
 print("dfs:", dfs(g, "1"));

@@ -1,6 +1,11 @@
 # ninja log v7
-29	30198	7807420534555944	CMakeFiles/adascript_core.dir/src/main.cpp.obj	f2ef2a58a3601749
-40	31184	7807420534665971	CMakeFiles/adascript.dir/src/main.cpp.obj	338bc6bfeb5bcccb
-30264	35703	7807420890878837	libadascript_core.dll	cd6e435eef75abe2
-30264	35703	7807420890878837	libadascript_core.dll.a	cd6e435eef75abe2
-31186	36174	7807420846131170	adascript.exe	6e0f71b01c6e59cd
+39	63771	7809959938399302	CMakeFiles/adascript_core.dir/src/main.cpp.obj	f2ef2a58a3601749
+52	67057	7809959938529325	CMakeFiles/adascript.dir/src/main.cpp.obj	338bc6bfeb5bcccb
+63789	79224	7809960729213795	libadascript_core.dll	cd6e435eef75abe2
+63789	79224	7809960729213795	libadascript_core.dll.a	cd6e435eef75abe2
+67065	81452	7809960609038575	adascript.exe	6e0f71b01c6e59cd
+29	117207	7809963938027394	CMakeFiles/adascript_core.dir/src/main.cpp.obj	f2ef2a58a3601749
+44	127179	7809963938177446	CMakeFiles/adascript.dir/src/main.cpp.obj	338bc6bfeb5bcccb
+117218	149331	7809965424065669	libadascript_core.dll	cd6e435eef75abe2
+117218	149331	7809965424065669	libadascript_core.dll.a	cd6e435eef75abe2
+127220	154132	7809965209944134	adascript.exe	6e0f71b01c6e59cd

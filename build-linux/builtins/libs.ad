@@ -1,0 +1,7 @@
+// AdaScript builtins: simple library aggregator
+// Import this to get common structures and algorithms
+// Usage: import "builtins/libs";
+
+import "datastructures";
+import "lru_cache";
+import "algorithms";

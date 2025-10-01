@@ -1,6 +1,6 @@
 // Smoke test: builtins/libs (Stack, Queue, Deque, LRUCache, algorithms)
 
-import "../builtins/libs";
+import "builtins/libs.ad";
 
 // Data structures
 let st = Stack(); st.push(1); st.push(2); print("stack pop:", st.pop(), st.pop());

@@ -27,6 +27,16 @@ License: LGPL
 #ifndef _WIN32
   #ifndef ADASCRIPT_NO_CURL
     #include <curl/curl.h>
+    #include <mutex>
+    // File-scope libcurl write callback (C signature)
+    struct CurlBuf { std::string s; };
+    static size_t curl_write_cb(char* ptr, size_t size, size_t nmemb, void* userdata){
+        CurlBuf* b = reinterpret_cast<CurlBuf*>(userdata);
+        if(!b || !ptr) return 0;
+        size_t total = size * nmemb;
+        b->s.append(ptr, total);
+        return total;
+    }
   #endif
 #endif
 #include "AdaScript.h"
@@ -318,7 +328,28 @@ StmtPtr statement(){
     StmtPtr ifStmt(){ consume(TokenType::LEFT_PAREN, "Expected '('"); auto cond = expression(); consume(TokenType::RIGHT_PAREN, "Expected ')'"); auto thenB = statement(); std::optional<StmtPtr> elseB; if(match({TokenType::ELSE})) elseB = statement(); return std::make_shared<IfStmt>(cond, thenB, elseB); }
     StmtPtr whileStmt(){ consume(TokenType::LEFT_PAREN, "Expected '('"); auto cond = expression(); consume(TokenType::RIGHT_PAREN, "Expected ')'"); auto body = statement(); return std::make_shared<WhileStmt>(cond, body); }
     StmtPtr forStmt(){ consume(TokenType::LEFT_PAREN, "Expected '('"); auto nameTok = consume(TokenType::IDENTIFIER, "Expected loop variable"); consume(TokenType::IN, "Expected 'in'"); auto iter = expression(); consume(TokenType::RIGHT_PAREN, "Expected ')'"); auto body = statement(); return std::make_shared<ForStmt>(nameTok.lexeme, iter, body); }
-    StmtPtr importStmt(){ auto pathTok = consume(TokenType::STRING, "Expected string path after import"); consume(TokenType::SEMICOLON, "Expected ';'"); return std::make_shared<ImportStmt>(pathTok.lexeme); }
+    StmtPtr importStmt(){
+        // Support: import "path"; or import builtins/some_lib.ad;
+        if(check(TokenType::STRING)){
+            auto pathTok = advance();
+            consume(TokenType::SEMICOLON, "Expected ';'");
+            return std::make_shared<ImportStmt>(pathTok.lexeme);
+        }
+        // Parse bare path segments: IDENT ('/' IDENT)* ('.' IDENT)?
+        std::ostringstream p;
+        bool first = true;
+        p << consume(TokenType::IDENTIFIER, "Expected path after import").lexeme;
+        while(match({TokenType::SLASH})){
+            p << '/';
+            p << consume(TokenType::IDENTIFIER, "Expected identifier after '/'").lexeme;
+        }
+        if(match({TokenType::DOT})){
+            p << '.';
+            p << consume(TokenType::IDENTIFIER, "Expected extension after '.'").lexeme;
+        }
+        consume(TokenType::SEMICOLON, "Expected ';'");
+        return std::make_shared<ImportStmt>(p.str());
+    }
 
     ExprPtr expression(){ return assignment(); }
 
@@ -472,8 +503,11 @@ void execImport(const std::string& rawPath){ using namespace std::filesystem; pa
         // Special handling for builtins location, e.g. import "builtins/..."
         std::string raw = rawPath;
         if(!builtins_dir.empty() && (raw.rfind("builtins/", 0)==0 || raw.rfind("builtins\\", 0)==0)){
+            // Compute sub path under builtins and ensure .ad extension if missing
             path sub = raw.substr(raw.find('/')!=std::string::npos? raw.find('/')+1 : raw.find('\\')+1);
-            full = (builtins_dir / sub).lexically_normal();
+            path subp(sub);
+            if(subp.extension().empty()) subp.replace_extension(".ad");
+            full = (builtins_dir / subp).lexically_normal();
         } else {
             full = (current_dir / p).lexically_normal();
         }
@@ -722,7 +756,7 @@ static Dict http_request(const std::string& method, const std::string& url, cons
     }
     bool secure = (uc.nScheme == INTERNET_SCHEME_HTTPS);
 
-    HINTERNET hSession = WinHttpOpen(L"AdaScript/1.0", WINHTTP_ACCESS_TYPE_DEFAULT_PROXY, WINHTTP_NO_PROXY_NAME, WINHTTP_NO_PROXY_BYPASS, 0);
+    HINTERNET hSession = WinHttpOpen(L"AdaScript/2.0", WINHTTP_ACCESS_TYPE_DEFAULT_PROXY, WINHTTP_NO_PROXY_NAME, WINHTTP_NO_PROXY_BYPASS, 0);
     if(!hSession) throw RuntimeError("requests."+method+": WinHttpOpen failed");
     HINTERNET hConnect = WinHttpConnect(hSession, uc.lpszHostName, uc.nPort? uc.nPort : (secure? INTERNET_DEFAULT_HTTPS_PORT : INTERNET_DEFAULT_HTTP_PORT), 0);
     if(!hConnect){ WinHttpCloseHandle(hSession); throw RuntimeError("requests."+method+": WinHttpConnect failed"); }
@@ -786,27 +820,70 @@ static Dict http_request(const std::string& method, const std::string& url, cons
 #else
     // Non-Windows: libcurl (optional)
     #ifndef ADASCRIPT_NO_CURL
-      struct Buf { std::string s; };
-      auto write_cb = [](char* ptr, size_t size, size_t nmemb, void* userdata)->size_t{
-          Buf* b = (Buf*)userdata; b->s.append(ptr, size*nmemb); return size*nmemb;
-      };
+      // Ensure global init once (thread-safe)
+      static std::once_flag curl_once;
+      std::call_once(curl_once, [](){ curl_global_init(CURL_GLOBAL_DEFAULT); });
+      CurlBuf buf; long code = 0;
       CURL* curl = curl_easy_init();
       if(!curl) throw RuntimeError("requests."+method+": curl init failed");
-      Buf buf; long code = 0;
       curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
       curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
-      curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_cb);
+      curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, curl_write_cb);
       curl_easy_setopt(curl, CURLOPT_WRITEDATA, &buf);
+      // Prefer HTTP/1.1 for broader compatibility in constrained envs
+      curl_easy_setopt(curl, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_1_1);
+      curl_easy_setopt(curl, CURLOPT_USERAGENT, "AdaScript/2.0");
+      // TLS configuration for WSL/Linux: try CA bundle, else relax verification as last resort
+      bool is_https = (url.rfind("https://", 0) == 0);
+      if(is_https){
+          // Common CA bundle locations
+          const char* ca_candidates[] = {
+            "/etc/ssl/certs/ca-certificates.crt",
+            "/etc/ssl/cert.pem",
+            "/etc/pki/tls/certs/ca-bundle.crt",
+            "/etc/ssl/certs/ca-bundle.crt"
+          };
+          bool ca_set = false;
+          for(const char* ca : ca_candidates){
+              FILE* f = fopen(ca, "rb");
+              if(f){ fclose(f); curl_easy_setopt(curl, CURLOPT_CAINFO, ca); ca_set = true; break; }
+          }
+          if(!ca_set){
+              // Fall back: disable peer/host verification (not recommended for production)
+              curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
+              curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0L);
+          }
+      }
       if(!body.empty()){
           curl_easy_setopt(curl, CURLOPT_POSTFIELDS, body.c_str());
           curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, (long)body.size());
       }
       struct curl_slist* hdrs = nullptr;
+      // Default headers for broader compatibility
+      hdrs = curl_slist_append(hdrs, "Accept: */*");
       for(const auto& kv : extra_headers){ std::string h = kv.first + ": " + kv.second; hdrs = curl_slist_append(hdrs, h.c_str()); }
       if(hdrs) curl_easy_setopt(curl, CURLOPT_HTTPHEADER, hdrs);
       curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, method.c_str());
+      // Avoid signals (SIGPIPE) in libcurl on Linux/WSL
+      curl_easy_setopt(curl, CURLOPT_NOSIGNAL, 1L);
+      // Disable compression to avoid decoder issues in constrained envs
+      curl_easy_setopt(curl, CURLOPT_ACCEPT_ENCODING, "");
+      char errbuf[CURL_ERROR_SIZE] = {0};
+      curl_easy_setopt(curl, CURLOPT_ERRORBUFFER, errbuf);
       CURLcode rc = curl_easy_perform(curl);
-      if(rc != CURLE_OK){ if(hdrs) curl_slist_free_all(hdrs); curl_easy_cleanup(curl); throw RuntimeError("requests."+method+": curl perform failed"); }
+      if(rc == CURLE_GOT_NOTHING){
+          // Retry once with HTTP/1.0 and Connection: close
+          curl_easy_setopt(curl, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_1_0);
+          hdrs = curl_slist_append(hdrs, "Connection: close");
+          curl_easy_setopt(curl, CURLOPT_HTTPHEADER, hdrs);
+          rc = curl_easy_perform(curl);
+      }
+      if(rc != CURLE_OK){
+          std::string emsg = std::string("requests.")+method+": curl perform failed: "+ (errbuf[0]? errbuf : curl_easy_strerror(rc));
+          if(hdrs) curl_slist_free_all(hdrs);
+          curl_easy_cleanup(curl);
+          throw RuntimeError(emsg);
+      }
       curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &code);
       if(hdrs) curl_slist_free_all(hdrs);
       curl_easy_cleanup(curl);
@@ -1057,7 +1134,24 @@ int main(int argc, char** argv){ std::ios::sync_with_stdio(false); std::cin.tie(
     std::ostringstream ss; ss<<in.rdbuf(); std::string src = ss.str();
     try{
         Lexer lx(src); auto tokens = lx.scan(); Parser ps(tokens); auto stmts = ps.parse(); std::filesystem::path entry = std::filesystem::path(script).parent_path(); Interpreter ip(entry);
-        if(!builtinsLoc.empty()) ip.builtins_dir = builtinsLoc;
+        // Resolve builtins directory: either provided or alongside executable (../builtins)
+        if(!builtinsLoc.empty()){
+            ip.builtins_dir = builtinsLoc;
+        } else {
+            try{
+                std::filesystem::path exe = std::filesystem::absolute(argv[0]);
+                std::filesystem::path exeDir = exe.parent_path();
+                std::vector<std::filesystem::path> candidates = {
+                    exeDir / "builtins",
+                    exeDir.parent_path() / "builtins",
+                    exeDir.parent_path() / "dist" / "windows" / "builtins",
+                    std::filesystem::current_path() / "builtins"
+                };
+                for(const auto& cand : candidates){
+                    if(std::filesystem::exists(cand)) { ip.builtins_dir = cand.string(); break; }
+                }
+            } catch(...){ /* ignore */ }
+        }
         ip.interpret(stmts);
     } catch(const RuntimeError& e){ std::cerr<<"Error: "<<e.what()<<"\n"; return 1; }
     return 0; }

@@ -1,2 +1,0 @@
-ninja -C build -v
-powershell -NoProfile -Command "& .\build\adascript.exe examples\smoke_libs.ad"

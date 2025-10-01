@@ -38,7 +38,7 @@ Build (Windows, Ninja):
 
 Build (Linux/WSL, Ninja):
 
-- Prereqs: libcurl dev (e.g., Ubuntu: `sudo apt-get install libcurl4-openssl-dev`)
+- Prereqs: libcurl dev (e.g., Ubuntu: `sudo apt-get install libcurl4-openssl-dev ca-certificates`)
 - cmake -S . -B build -G Ninja
 - cmake --build build --config Release
 

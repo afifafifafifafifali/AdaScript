@@ -1,0 +1,53 @@
+// AdaScript builtins: LRU Cache (simple)
+// Usage: let cache = LRUCache(3); cache.put("a", 1); cache.get("a");
+// @message level:authorized::builtins :- WARNING: LRUCache is not currently functional.
+class LRUCache {
+    func init(cap) { this._cap = cap; this._map = {}; this._order = []; }
+    func _touch(key) {
+        // move key to end (most recent)
+        let n = len(this._order);
+        let i = 0;
+        while (i < n) {
+            if (this._order[i] equals key) { break; }
+            i = i + 1;
+        }
+        if (i < n) {
+            // remove at i
+            let j = i;
+            while (j + 1 < n) {
+                this._order[j] = this._order[j+1];
+                j = j + 1;
+            }
+            this._order[n-1] = null;
+        }
+        // append key at end
+        this._order[len(this._order)] = key;
+    }
+    func get(key) {
+        if (this._map[key] equals null) { return null; }
+        this._touch(key);
+        return this._map[key];
+    }
+    func put(key, value) {
+        if (!(this._map[key] equals null)) {
+            this._map[key] = value;
+            this._touch(key);
+            return null;
+        }
+        // insert
+        if (len(this._order) >= this._cap) {
+            // evict least recent at front
+            let evk = this._order[0];
+            this._map[evk] = null;
+            // shift left
+            let k = 0; let n = len(this._order);
+            while (k + 1 < n) { this._order[k] = this._order[k+1]; k = k + 1; }
+            this._order[n-1] = null;
+        }
+        this._map[key] = value;
+        this._order[len(this._order)] = key;
+        return null;
+    }
+    func size() { return len(this._order); }
+}
+

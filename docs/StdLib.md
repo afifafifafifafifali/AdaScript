@@ -62,3 +62,50 @@ let g = {"1":["2","3"], "2":["4"], "3":["4"], "4":[]};
 print("bfs:", bfs(g, "1"));
 print("dfs:", dfs(g, "1"));
 ```
+
+---
+
+## Intrinsic built-ins (defined in interpreter)
+
+The following functions are implemented directly by the AdaScript interpreter (src/main.cpp) and are available without importing the builtins directory.
+
+Global
+- print(...): variadic print to stdout
+- len(x): length of list/string/dict
+- input(prompt?): reads a line from stdin
+- map(func, list): apply function/native function to each element and return a list
+- sqrt_bs(x): square root via binary search
+- range([start], stop [, step]): integer range generator
+- int(x): cast to integer (number/string/bool)
+- float(x): cast to float (number/string/bool)
+- str(x): string representation
+- split(string[, sep]): split into list of strings
+- join(list, sep): join list of strings with separator
+- abs(x): absolute value
+- has(dict, key): true if key exists in dict
+- list_input(prompt[, sep[, type]]): parse a line into a list; type in {"auto","int","float","str"}
+
+Namespaces
+- requests.get(url): HTTP/HTTPS GET (or file://) -> { status, text, headers? }
+- requests.post(url, data[, headers]): POST request
+- requests.request(method, url[, data[, headers]]): general request
+- fs.read_text(path): read file as text
+- fs.write_text(path, text): write text to file
+- fs.exists(path): returns true if path exists
+- fs.listdir(path): list directory names in path
+- fs.mkdirs(path): create directories (recursive)
+- fs.remove(path): remove file or directory tree; returns count removed
+- content.get(source): fetch http(s), file://, or local path -> { ok, status, text, type, ... }
+- c.run(code[, args_list]): compile+run C code with gcc (MinGW on Windows) -> { ok, compile_status, run_status, exe }
+- server.serve(...): not implemented in this build (raises error)
+- proc.exec(cmd): run a shell command, capture { status, out }
+- native.load(path): load a native plugin (DLL/SO) exporting AdaScript_ModuleInit; registers functions into globals
+
+String method
+- s.split(sep?): string instance method; behaves like split(s, sep)
+
+Notes
+- HTTP on Windows uses WinHTTP; non-Windows optionally uses libcurl (guarded by ADASCRIPT_NO_CURL).
+- content.get supports http/https/file/local fallback with structured response.
+- c.run requires gcc in PATH on Windows (e.g., MinGW). On success it executes the produced binary.
+- server.serve is a stub in this build.

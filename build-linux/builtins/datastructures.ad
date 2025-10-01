@@ -1,0 +1,31 @@
+// AdaScript builtins: data structures (stack, queue, deque)
+
+// Stack implemented using dict + size counter (to support pop without list resize)
+class Stack {
+    func init() { this._buf = {}; this._n = 0; }
+    func push(x) { this._buf[str(this._n)] = x; this._n = this._n + 1; }
+    func pop() { if (this._n == 0) { return null; } this._n = this._n - 1; let k = str(this._n); let v = this._buf[k]; this._buf[k] = null; return v; }
+    func peek() { if (this._n == 0) { return null; } return this._buf[str(this._n - 1)]; }
+    func is_empty() { return this._n == 0; }
+}
+
+// Queue using two stacks technique for amortized O(1)
+class Queue {
+    func init() { this._in = Stack(); this._out = Stack(); }
+    func _rebalance() { while (!this._in.is_empty()) { this._out.push(this._in.pop()); } }
+    func push(x) { this._in.push(x); }
+    func pop() { if (this._out.is_empty()) { this._rebalance(); } return this._out.pop(); }
+    func peek() { if (this._out.is_empty()) { this._rebalance(); } return this._out.peek(); }
+    func is_empty() { return this._in.is_empty() and this._out.is_empty(); }
+}
+
+// Deque using circular buffer emulation with dict
+class Deque {
+    func init() { this._buf = {}; this._lo = 0; this._hi = 0; }
+    func push_back(x) { this._buf[str(this._hi)] = x; this._hi = this._hi + 1; }
+    func push_front(x) { this._lo = this._lo - 1; this._buf[str(this._lo)] = x; }
+    func pop_back() { if (this._lo == this._hi) { return null; } this._hi = this._hi - 1; let k = str(this._hi); let v = this._buf[k]; this._buf[k] = null; return v; }
+    func pop_front() { if (this._lo == this._hi) { return null; } let k = str(this._lo); let v = this._buf[k]; this._buf[k] = null; this._lo = this._lo + 1; return v; }
+    func is_empty() { return this._lo == this._hi; }
+    func len() { return this._hi - this._lo; }
+}
